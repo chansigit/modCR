@@ -74,29 +74,43 @@ RC_DICT = {'A':'T', 'G':'C', 'C':'G', 'T':'A', 'N':'N', '{':'}', '}':'{', ' ':' 
 # **********************************************************************************************************************
 # *****************************************   Function Definition Section   ********************************************
 # **********************************************************************************************************************
-# Reverse complement a sequence
-def RC(seq):
-    return ''.join([RC_DICT[base] for base in seq[::-1]])
+# Get all reads that contain some frequent kmer
+def GetRelevantReads(directory, fileName, kval, data):
+    signatures = set()
+    refinedreads = []
+    readindex = 0
+    reads = readFileReadsThin(directory + fileName)
+    for read in reads:
+        if (readindex % 100000 == 0):
+            stdout.write("\r Getting relevant reads. processed: %d" % readindex)
+            stdout.flush()
+        hashValue = hash(read)
+        if hashValue in signatures:
+            continue
+        signatures.add(hashValue)
+        for index in range(len(read) - kval + 1):
+            kmer = read[index:index + kval]
+            if kmer in data:
+                refinedreads.append(read)
+                break
+        readindex += 1
+    stdout.write("\r Getting relevant reads. processed: %d" % readindex)
+    stdout.flush()
+    stdout.write("\n")
+    return refinedreads;
 
-
-# Refine kmer statistics object to hold data only on frequent kmers
-# In addition, the value is changed to hold list for read indices
-def GetRefineStats(stats, threshold):
-    refinedStats = dict()
-    for kmer in stats:
-        amount = stats[kmer]
-        rc = RC(kmer)
-        if rc in stats:
-            amount += stats[rc]
-        if (amount >= threshold):
-            refinedStats[kmer] = list()
-            refinedStats[rc] = list()
-    return refinedStats
+# Get the length of the reads (assuming all have the same length)
+def GetReadsLength(directory, fileName):
+    handler = open(directory + fileName, "r")
+    line = handler.readline().strip()
+    while line.startswith(">"):
+        line = handler.readline().strip()
+    return len(line);
 
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod2_GetRefinedStats.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -stat C:\data\Mod1_KmerStats_may1test_4fa683b0-11be-11e6-8116-ec55f98094e4.json
+# python Mod3_GetRelevantReads.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json
 import json
 import uuid
 import logging
@@ -104,43 +118,73 @@ import logging
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-KmerStatsFile=str(dictionaryArguments["-stat"])  if "-stat"  in dictionaryArguments else "kmerstat.json"
+refineStatsFile=str(dictionaryArguments["-rfst"])  if "-rfst"  in dictionaryArguments else "refinestat.json"  #
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-RefinedStats_Filename = "Mod2_RefinedStats_"+TASKNAME+"_"+uuidstr+".json"  #
-RefinedStats_Filename = os.path.join(RESULTDIR, RefinedStats_Filename)     #
-Log_Filename          = "Mod2_RefinedStats_"+TASKNAME+"_"+uuidstr+".log"
+RefinedReads_Filename = "Mod3_RefinedReads_" +TASKNAME+"_"+uuidstr+".json"  #
+RefinedReads_Filename = os.path.join(RESULTDIR, RefinedReads_Filename)      #
+
+readLen_Filename      = "Mod3_readLen_"       +TASKNAME+"_"+uuidstr+".json"  #
+readLen_Filename      = os.path.join(RESULTDIR, readLen_Filename     )      #
+
+minOverlap_Filename   = "Mod3_minOverlap_"    +TASKNAME+"_"+uuidstr+".json"  #
+minOverlap_Filename   = os.path.join(RESULTDIR, minOverlap_Filename  )      #
+
+relevantReadsNumber_Filename = "Mod3_relevantReadsNumber_" +TASKNAME+"_"+uuidstr+".json"  #
+relevantReadsNumber_Filename = os.path.join(RESULTDIR, relevantReadsNumber_Filename)     #
+
+Log_Filename          = "Mod3_RefinedReads_"+TASKNAME+"_"+uuidstr+".log"   #
 Log_Filename          = os.path.join(LOGDIR, Log_Filename)
 
 # 写入任务信息
 logging.basicConfig(level = logging.DEBUG, datefmt = '%a, %d %b %Y %H:%M:%S', filename = Log_Filename, filemode = 'w',
                     format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
-logtitle = "Module RefinedStat - "+TASKNAME
+logtitle = "Module RefinedReads - "+TASKNAME             #
 logging.info(logtitle)
 logging.info("Parameter K=" + str(KVAL) + ", T=" +str(threshold))
 logging.info("Logging in "+str(Log_Filename))
-logging.info("Results in "+str(RefinedStats_Filename))
+logging.info("Results in "+str(RefinedReads_Filename)) #
+logging.info("Results in "+str(readLen_Filename))      #
+logging.info("Results in "+str(minOverlap_Filename))   #
+logging.info("Results in "+str(relevantReadsNumber_Filename))   #
 
 # 导入数据
 logging.info("File Loading begins")
-t1_load = time()
-stats   = json.load(open(KmerStatsFile, 'r'))
-t2_load = time()
+t1_load     = time()
+refineStats = json.load(open(refineStatsFile, 'r'))    #
+t2_load     = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 
 # 计算
-logging.info("Refining Kmer Statistics begins")
-t1_refineStat = time()
-refinedStats = GetRefineStats(stats, threshold)
-t2_refineStat = time()
-logging.info("Refining Kmer Statistics ends, taking "+ str(t2_refineStat-t1_refineStat) +" seconds")
+logging.info("Refining Reads begins")             #
+t1_refineReads = time()    #
+refinedReads   = GetRelevantReads(DIRECTORY, FILE, KVAL, refineStats)     #
+readLen        = GetReadsLength(DIRECTORY, FILE)      #
+minOverlap     = int(readLen * MIN_OVERLAP_FRACTION)  #
+relevantReadsNumber = len(refinedReads)           #
+t2_refineReads = time()    #
+logging.info("Refining Reads ends, taking "+ str(t2_refineReads-t1_refineReads) +" seconds")    #
 
 # 持久化结果
 logging.info("Generating JSON file begins")
-fp = open(RefinedStats_Filename,"w")
 t1_json =time()
-json.dump(refinedStats, fp)
-t2_json =time()
+
+fp = open(RefinedReads_Filename,"w")   #
+json.dump(refinedReads, fp)            #
 fp.close()
+
+fp = open(readLen_Filename,"w")   #
+json.dump(readLen, fp)            #
+fp.close()
+
+fp = open(minOverlap_Filename,"w")#
+json.dump(minOverlap, fp)            #
+fp.close()
+
+fp = open(relevantReadsNumber_Filename,"w")   #
+json.dump(relevantReadsNumber, fp)            #
+fp.close()
+
+t2_json =time()
 logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")

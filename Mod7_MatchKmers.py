@@ -78,25 +78,21 @@ RC_DICT = {'A':'T', 'G':'C', 'C':'G', 'T':'A', 'N':'N', '{':'}', '}':'{', ' ':' 
 def RC(seq):
     return ''.join([RC_DICT[base] for base in seq[::-1]])
 
-
-# Refine kmer statistics object to hold data only on frequent kmers
-# In addition, the value is changed to hold list for read indices
-def GetRefineStats(stats, threshold):
-    refinedStats = dict()
+# Find pairs of reads and their reverse complements
+def MatchKmers(stats):
+    pairs = dict()
     for kmer in stats:
-        amount = stats[kmer]
         rc = RC(kmer)
-        if rc in stats:
-            amount += stats[rc]
-        if (amount >= threshold):
-            refinedStats[kmer] = list()
-            refinedStats[rc] = list()
-    return refinedStats
-
+        if (rc in stats):
+            if rc not in pairs:
+                pairs[kmer] = rc
+        else:
+            pairs[kmer] = None
+    return pairs
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod2_GetRefinedStats.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -stat C:\data\Mod1_KmerStats_may1test_4fa683b0-11be-11e6-8116-ec55f98094e4.json
+# python Mod7_MatchKmers.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -stat C:\data\Mod4_RefinedStats_may1test_900dbb21-11c4-11e6-8c9c-ec55f98094e4.json
 import json
 import uuid
 import logging
@@ -104,14 +100,14 @@ import logging
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-KmerStatsFile=str(dictionaryArguments["-stat"])  if "-stat"  in dictionaryArguments else "kmerstat.json"
+refinedStatsFile=str(dictionaryArguments["-stat"])  if "-stat"  in dictionaryArguments else "refinedstat.json"
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-RefinedStats_Filename = "Mod2_RefinedStats_"+TASKNAME+"_"+uuidstr+".json"  #
-RefinedStats_Filename = os.path.join(RESULTDIR, RefinedStats_Filename)     #
-Log_Filename          = "Mod2_RefinedStats_"+TASKNAME+"_"+uuidstr+".log"
-Log_Filename          = os.path.join(LOGDIR, Log_Filename)
+pair_Filename = "Mod7_MatchedPair_"+TASKNAME+"_"+uuidstr+".json"  #
+pair_Filename = os.path.join(RESULTDIR, pair_Filename)            #
+Log_Filename  = "Mod7_MatchedPair_"+TASKNAME+"_"+uuidstr+".log"
+Log_Filename  = os.path.join(LOGDIR, Log_Filename)
 
 # 写入任务信息
 logging.basicConfig(level = logging.DEBUG, datefmt = '%a, %d %b %Y %H:%M:%S', filename = Log_Filename, filemode = 'w',
@@ -120,27 +116,27 @@ logtitle = "Module RefinedStat - "+TASKNAME
 logging.info(logtitle)
 logging.info("Parameter K=" + str(KVAL) + ", T=" +str(threshold))
 logging.info("Logging in "+str(Log_Filename))
-logging.info("Results in "+str(RefinedStats_Filename))
+logging.info("Results in "+str(pair_Filename))
 
 # 导入数据
 logging.info("File Loading begins")
 t1_load = time()
-stats   = json.load(open(KmerStatsFile, 'r'))
+refinedStats = json.load(open(refinedStatsFile, 'r'))
 t2_load = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 
 # 计算
-logging.info("Refining Kmer Statistics begins")
-t1_refineStat = time()
-refinedStats = GetRefineStats(stats, threshold)
-t2_refineStat = time()
-logging.info("Refining Kmer Statistics ends, taking "+ str(t2_refineStat-t1_refineStat) +" seconds")
+logging.info("Matching Kmer Pairs begins")
+t1_pairMatch = time()
+pairs = MatchKmers(refinedStats)
+t2_pairMatch = time()
+logging.info("Matching Kmer Pairs ends, taking "+ str(t2_pairMatch-t1_pairMatch) +" seconds")
 
 # 持久化结果
 logging.info("Generating JSON file begins")
-fp = open(RefinedStats_Filename,"w")
+fp = open(pair_Filename,"w")
 t1_json =time()
-json.dump(refinedStats, fp)
+json.dump(pairs, fp)
 t2_json =time()
 fp.close()
 logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")

@@ -74,13 +74,6 @@ RC_DICT = {'A':'T', 'G':'C', 'C':'G', 'T':'A', 'N':'N', '{':'}', '}':'{', ' ':' 
 # **********************************************************************************************************************
 # *****************************************   Function Definition Section   ********************************************
 # **********************************************************************************************************************
-# Get the length of the reads (assuming all have the same length)
-def GetReadsLength(directory, fileName):
-    handler = open(directory + fileName, "r")
-    line = handler.readline().strip()
-    while line.startswith(">"):
-        line = handler.readline().strip()
-    return len(line);
 
 # Obtain frequency statistics on kmers
 # kmers that appeat more than once in a read are currently discarded
@@ -122,9 +115,9 @@ TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArgumen
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-KmerStats_Filename = "KmerStats_"+TASKNAME+"_"+uuidstr+".json"
+KmerStats_Filename = "Mod1_KmerStats_"+TASKNAME+"_"+uuidstr+".json"
 KmerStats_Filename = os.path.join(RESULTDIR, KmerStats_Filename)
-Log_Filename       = "KmerStats_"+TASKNAME+"_"+uuidstr+".log"
+Log_Filename       = "Mod1_KmerStats_"+TASKNAME+"_"+uuidstr+".log"
 Log_Filename       = os.path.join(LOGDIR, Log_Filename)
 
 # 写入任务信息
@@ -139,7 +132,7 @@ logging.info("Results in "+str(KmerStats_Filename))
 # 导入数据
 logging.info("File Loading begins")
 t1_load = time()
-readLen = GetReadsLength(DIRECTORY, FILE)
+#readLen = GetReadsLength(DIRECTORY, FILE)
 reads = readFileReadsThin(DIRECTORY + FILE)
 t2_load = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")

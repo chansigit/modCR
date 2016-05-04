@@ -74,29 +74,32 @@ RC_DICT = {'A':'T', 'G':'C', 'C':'G', 'T':'A', 'N':'N', '{':'}', '}':'{', ' ':' 
 # **********************************************************************************************************************
 # *****************************************   Function Definition Section   ********************************************
 # **********************************************************************************************************************
-# Reverse complement a sequence
-def RC(seq):
-    return ''.join([RC_DICT[base] for base in seq[::-1]])
 
 
-# Refine kmer statistics object to hold data only on frequent kmers
-# In addition, the value is changed to hold list for read indices
-def GetRefineStats(stats, threshold):
-    refinedStats = dict()
-    for kmer in stats:
-        amount = stats[kmer]
-        rc = RC(kmer)
-        if rc in stats:
-            amount += stats[rc]
-        if (amount >= threshold):
-            refinedStats[kmer] = list()
-            refinedStats[rc] = list()
-    return refinedStats
-
+# Obtain kmer data regarding a subset of the reads (that appear in a given dictionary)
+# Construct a mapping between kmers and list of containing reads
+def UpdateKmerData(reads, kval, stats):
+    readindex = 0
+    for read in reads:
+        if (readindex % 100000 == 0):
+            stdout.write("\r Updating k-mer data. processed: %d" % readindex)
+            stdout.flush()
+        for index in range(len(read) - kval + 1):
+            kmer = read[index:index + kval]
+            if (kmer in stats):
+                occurences = stats[kmer]
+                if (len(occurences) == 0 or occurences[-1] != readindex):
+                    occurences.append(readindex)
+                stats[kmer] = occurences
+        readindex += 1
+    stdout.write("\r Updating k-mer data. processed: %d" % readindex)
+    stdout.flush()
+    stdout.write("\n")
+    return
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod2_GetRefinedStats.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -stat C:\data\Mod1_KmerStats_may1test_4fa683b0-11be-11e6-8116-ec55f98094e4.json
+# python Mod4_UpdateKmerData.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json -rfrd C:\data\Mod3_RefinedReads_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
 import json
 import uuid
 import logging
@@ -104,43 +107,45 @@ import logging
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-KmerStatsFile=str(dictionaryArguments["-stat"])  if "-stat"  in dictionaryArguments else "kmerstat.json"
+refinedStatsFile=str(dictionaryArguments["-rfst"])  if "-rfst"  in dictionaryArguments else "refinestat.json"  #
+refinedReadsFile=str(dictionaryArguments["-rfrd"])  if "-rfrd"  in dictionaryArguments else "refineread.json"  #
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-RefinedStats_Filename = "Mod2_RefinedStats_"+TASKNAME+"_"+uuidstr+".json"  #
+RefinedStats_Filename = "Mod4_RefinedStats_"+TASKNAME+"_"+uuidstr+".json"  #
 RefinedStats_Filename = os.path.join(RESULTDIR, RefinedStats_Filename)     #
-Log_Filename          = "Mod2_RefinedStats_"+TASKNAME+"_"+uuidstr+".log"
+Log_Filename          = "Mod4_RefinedStats_"+TASKNAME+"_"+uuidstr+".log"   #
 Log_Filename          = os.path.join(LOGDIR, Log_Filename)
 
 # 写入任务信息
 logging.basicConfig(level = logging.DEBUG, datefmt = '%a, %d %b %Y %H:%M:%S', filename = Log_Filename, filemode = 'w',
                     format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
-logtitle = "Module RefinedStat - "+TASKNAME
+logtitle = "Module UpdateKmer - "+TASKNAME             #
 logging.info(logtitle)
 logging.info("Parameter K=" + str(KVAL) + ", T=" +str(threshold))
 logging.info("Logging in "+str(Log_Filename))
-logging.info("Results in "+str(RefinedStats_Filename))
+logging.info("Results in "+str(RefinedStats_Filename))   #
 
 # 导入数据
 logging.info("File Loading begins")
-t1_load = time()
-stats   = json.load(open(KmerStatsFile, 'r'))
-t2_load = time()
+t1_load     = time()
+refinedStats = json.load(open(refinedStatsFile, 'r'))    #
+refinedReads = json.load(open(refinedReadsFile, 'r'))    #
+t2_load     = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 
 # 计算
-logging.info("Refining Kmer Statistics begins")
-t1_refineStat = time()
-refinedStats = GetRefineStats(stats, threshold)
-t2_refineStat = time()
-logging.info("Refining Kmer Statistics ends, taking "+ str(t2_refineStat-t1_refineStat) +" seconds")
+logging.info("Update Kmer begins")          #
+t1_updateKmer = time()
+UpdateKmerData(refinedReads, KVAL, refinedStats)
+t2_updateKmer = time()
+logging.info("Update Kmer ends, taking "+ str(t2_updateKmer-t1_updateKmer) +" seconds")    #
 
 # 持久化结果
 logging.info("Generating JSON file begins")
-fp = open(RefinedStats_Filename,"w")
+fp = open(RefinedStats_Filename,"w")   #
 t1_json =time()
-json.dump(refinedStats, fp)
+json.dump(refinedStats, fp)            #
 t2_json =time()
 fp.close()
 logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")
