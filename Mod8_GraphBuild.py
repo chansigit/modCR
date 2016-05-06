@@ -329,23 +329,23 @@ def AnalyzeKmer(kmer, readIndices, reads, overlapsData, cacheOverlapsData, minOv
 # -rlen C:\data\Mod3_readLen_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json
 # python Mod8_GraphBuild.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod4_RefinedStats_may05test_bcc77d80-11fc-11e6-bac8-ec55f98094e4.json  -rfrd C:\data\Mod5_RefinedReads_may05test_e91ab04f-11fc-11e6-870d-ec55f98094e4.json -hash C:\data\Mod6_HashData_may05test_bd9fa840-12b0-11e6-b637-ec55f98094e4.json -pair C:\data\Mod7_MatchedPair_may05test_55e83c21-11fd-11e6-bbf5-ec55f98094e4.json -ovlp C:\data\Mod3_minOverlap_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json -rlrd C:\data\Mod3_relevantReadsNumber_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json -rlen C:\data\Mod3_readLen_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json
 
-import json
+import cPickle
 import uuid
 import logging
 # 定义辅助参数
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-refinedStatsFile=str(dictionaryArguments["-rfst"]) if "-rfst"  in dictionaryArguments else "refinedstat.json"
-refinedReadsFile=str(dictionaryArguments["-rfrd"]) if "-rfrd"  in dictionaryArguments else "refinedread.json"
-pairsFile= str(dictionaryArguments["-pair"])   if "-pair"  in dictionaryArguments else "pairs.json"
-hashFile = str(dictionaryArguments["-hash"])   if "-hash"  in dictionaryArguments else "hash.json"
-minOverlapFile = str(dictionaryArguments["-ovlp"])   if "-ovlp"  in dictionaryArguments else "minoverlap.json"
-relevantReadsNumberFile = str(dictionaryArguments["-rlrd"])   if "-rlrd"  in dictionaryArguments else "relevantRead.json"
-readLenFile = str(dictionaryArguments["-rlen"])   if "-rlen"  in dictionaryArguments else "readLen.json"
+refinedStatsFile=str(dictionaryArguments["-rfst"]) if "-rfst"  in dictionaryArguments else "refinedstat.pkl"
+refinedReadsFile=str(dictionaryArguments["-rfrd"]) if "-rfrd"  in dictionaryArguments else "refinedread.pkl"
+pairsFile= str(dictionaryArguments["-pair"])   if "-pair"  in dictionaryArguments else "pairs.pkl"
+hashFile = str(dictionaryArguments["-hash"])   if "-hash"  in dictionaryArguments else "hash.pkl"
+minOverlapFile = str(dictionaryArguments["-ovlp"])   if "-ovlp"  in dictionaryArguments else "minoverlap.pkl"
+relevantReadsNumberFile = str(dictionaryArguments["-rlrd"])   if "-rlrd"  in dictionaryArguments else "relevantRead.pkl"
+readLenFile = str(dictionaryArguments["-rlen"])   if "-rlen"  in dictionaryArguments else "readLen.pkl"
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-Ret_Filename = "Mod8_GraphBuild_"+TASKNAME+"_"+uuidstr+".json"  #
+Ret_Filename = "Mod8_GraphBuild_"+TASKNAME+"_"+uuidstr+".pkl"  #
 Ret_Filename = os.path.join(RESULTDIR, Ret_Filename)            #
 Log_Filename = "Mod8_GraphBuild_"+TASKNAME+"_"+uuidstr+".log"
 Log_Filename = os.path.join(LOGDIR, Log_Filename)
@@ -362,13 +362,13 @@ logging.info("Results in "+str(Ret_Filename))
 # 导入数据
 logging.info("File Loading begins")
 t1_load = time()
-refinedStats = json.load(open(refinedStatsFile, 'r'))
-refinedReads = json.load(open(refinedReadsFile, 'r'))
-pairs        = json.load(open(pairsFile, 'r'))
-data         = json.load(open(hashFile,  'r'))
-minOverlap          = json.load(open(minOverlapFile,'r'))
-relevantReadsNumber = json.load(open(relevantReadsNumberFile, 'r'))
-readLen             = json.load(open(readLenFile, 'r'))
+refinedStats = cPickle.load(open(refinedStatsFile, 'r'))
+refinedReads = cPickle.load(open(refinedReadsFile, 'r'))
+pairs        = cPickle.load(open(pairsFile, 'r'))
+data         = cPickle.load(open(hashFile,  'r'))
+minOverlap          = cPickle.load(open(minOverlapFile,'r'))
+relevantReadsNumber = cPickle.load(open(relevantReadsNumberFile, 'r'))
+readLen             = cPickle.load(open(readLenFile, 'r'))
 t2_load = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 

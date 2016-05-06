@@ -111,27 +111,28 @@ def GetReadsLength(directory, fileName):
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
 # python Mod3_GetRelevantReads.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json
-import json
+
+import cPickle
 import uuid
 import logging
 # 定义辅助参数
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-refineStatsFile=str(dictionaryArguments["-rfst"])  if "-rfst"  in dictionaryArguments else "refinestat.json"  #
+refineStatsFile=str(dictionaryArguments["-rfst"])  if "-rfst"  in dictionaryArguments else "refinestat.pkl"  #
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-RefinedReads_Filename = "Mod3_RefinedReads_" +TASKNAME+"_"+uuidstr+".json"  #
+RefinedReads_Filename = "Mod3_RefinedReads_" +TASKNAME+"_"+uuidstr+".pkl"  #
 RefinedReads_Filename = os.path.join(RESULTDIR, RefinedReads_Filename)      #
 
-readLen_Filename      = "Mod3_readLen_"       +TASKNAME+"_"+uuidstr+".json"  #
+readLen_Filename      = "Mod3_readLen_"       +TASKNAME+"_"+uuidstr+".pkl"  #
 readLen_Filename      = os.path.join(RESULTDIR, readLen_Filename     )      #
 
-minOverlap_Filename   = "Mod3_minOverlap_"    +TASKNAME+"_"+uuidstr+".json"  #
+minOverlap_Filename   = "Mod3_minOverlap_"    +TASKNAME+"_"+uuidstr+".pkl"  #
 minOverlap_Filename   = os.path.join(RESULTDIR, minOverlap_Filename  )      #
 
-relevantReadsNumber_Filename = "Mod3_relevantReadsNumber_" +TASKNAME+"_"+uuidstr+".json"  #
+relevantReadsNumber_Filename = "Mod3_relevantReadsNumber_" +TASKNAME+"_"+uuidstr+".pkl"  #
 relevantReadsNumber_Filename = os.path.join(RESULTDIR, relevantReadsNumber_Filename)     #
 
 Log_Filename          = "Mod3_RefinedReads_"+TASKNAME+"_"+uuidstr+".log"   #
@@ -152,7 +153,7 @@ logging.info("Results in "+str(relevantReadsNumber_Filename))   #
 # 导入数据
 logging.info("File Loading begins")
 t1_load     = time()
-refineStats = json.load(open(refineStatsFile, 'r'))    #
+refineStats = cPickle.load(open(refineStatsFile, 'r'))    #
 t2_load     = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 
@@ -167,24 +168,24 @@ t2_refineReads = time()    #
 logging.info("Refining Reads ends, taking "+ str(t2_refineReads-t1_refineReads) +" seconds")    #
 
 # 持久化结果
-logging.info("Generating JSON file begins")
-t1_json =time()
+logging.info("Serialization begins")
+t1_serial =time()
 
 fp = open(RefinedReads_Filename,"w")   #
-json.dump(refinedReads, fp)            #
+cPickle.dump(refinedReads, fp)            #
 fp.close()
 
 fp = open(readLen_Filename,"w")   #
-json.dump(readLen, fp)            #
+cPickle.dump(readLen, fp)            #
 fp.close()
 
 fp = open(minOverlap_Filename,"w")#
-json.dump(minOverlap, fp)            #
+cPickle.dump(minOverlap, fp)            #
 fp.close()
 
 fp = open(relevantReadsNumber_Filename,"w")   #
-json.dump(relevantReadsNumber, fp)            #
+cPickle.dump(relevantReadsNumber, fp)            #
 fp.close()
 
-t2_json =time()
-logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")
+t2_serial =time()
+logging.info("Serialization ends, taking "+ str(t2_serial-t1_serial) +" seconds")

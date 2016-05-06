@@ -93,18 +93,19 @@ def MatchKmers(stats):
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
 # python Mod7_MatchKmers.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -stat C:\data\Mod4_RefinedStats_may1test_900dbb21-11c4-11e6-8c9c-ec55f98094e4.json
-import json
+
+import cPickle
 import uuid
 import logging
 # 定义辅助参数
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-refinedStatsFile=str(dictionaryArguments["-stat"])  if "-stat"  in dictionaryArguments else "refinedstat.json"
+refinedStatsFile=str(dictionaryArguments["-stat"])  if "-stat"  in dictionaryArguments else "refinedstat.pkl"
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-pair_Filename = "Mod7_MatchedPair_"+TASKNAME+"_"+uuidstr+".json"  #
+pair_Filename = "Mod7_MatchedPair_"+TASKNAME+"_"+uuidstr+".pkl"  #
 pair_Filename = os.path.join(RESULTDIR, pair_Filename)            #
 Log_Filename  = "Mod7_MatchedPair_"+TASKNAME+"_"+uuidstr+".log"
 Log_Filename  = os.path.join(LOGDIR, Log_Filename)
@@ -121,7 +122,7 @@ logging.info("Results in "+str(pair_Filename))
 # 导入数据
 logging.info("File Loading begins")
 t1_load = time()
-refinedStats = json.load(open(refinedStatsFile, 'r'))
+refinedStats = cPickle.load(open(refinedStatsFile, 'r'))
 t2_load = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 
@@ -133,10 +134,10 @@ t2_pairMatch = time()
 logging.info("Matching Kmer Pairs ends, taking "+ str(t2_pairMatch-t1_pairMatch) +" seconds")
 
 # 持久化结果
-logging.info("Generating JSON file begins")
+logging.info("Serialization Begins")
 fp = open(pair_Filename,"w")
-t1_json =time()
-json.dump(pairs, fp)
-t2_json =time()
+t1_serial =time()
+cPickle.dump(pairs, fp)
+t2_serial =time()
 fp.close()
-logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")
+logging.info("Serialization Ends, taking "+ str(t2_serial-t1_serial) +" seconds")

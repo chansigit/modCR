@@ -109,19 +109,20 @@ def ComputeHashValues(reads, minOverlap, mod):
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
 # python Mod6_ComputeHash.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfrd C:\data\Mod5_RefinedReads_may1test_2d0bd6cf-11cc-11e6-b12b-ec55f98094e4.json -ovlp C:\data\Mod3_minOverlap_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
-import json
+
+import cPickle
 import uuid
 import logging
 # 定义辅助参数
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-refineReadsFile=str(dictionaryArguments["-rfrd"])  if "-rfrd"  in dictionaryArguments else "refineread.json"  #
-minOverlapFile =str(dictionaryArguments["-ovlp"])  if "-ovlp"  in dictionaryArguments else "minoverlap.json"  #
+refineReadsFile=str(dictionaryArguments["-rfrd"])  if "-rfrd"  in dictionaryArguments else "refineread.pkl"  #
+minOverlapFile =str(dictionaryArguments["-ovlp"])  if "-ovlp"  in dictionaryArguments else "minoverlap.pkl"  #
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-HashData_Filename = "Mod6_HashData_"+TASKNAME+"_"+uuidstr+".json"  #
+HashData_Filename = "Mod6_HashData_"+TASKNAME+"_"+uuidstr+".pkl"  #
 HashData_Filename = os.path.join(RESULTDIR, HashData_Filename)     #
 Log_Filename      = "Mod6_HashData_"+TASKNAME+"_"+uuidstr+".log"   #
 Log_Filename      = os.path.join(LOGDIR, Log_Filename)
@@ -138,8 +139,8 @@ logging.info("Results in "+str(HashData_Filename))   #
 # 导入数据
 logging.info("File Loading begins")
 t1_load      = time()
-refinedReads = json.load(open(refineReadsFile, 'r'))    #
-minOverlap   = json.load(open(minOverlapFile,  'r'))    #
+refinedReads = cPickle.load(open(refineReadsFile, 'r'))    #
+minOverlap   = cPickle.load(open(minOverlapFile,  'r'))    #
 t2_load      = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 
@@ -151,10 +152,10 @@ t2_hashing   = time()    #
 logging.info("Hash Computing ends, taking "+ str(t2_hashing-t1_hashing) +" seconds")    #
 
 # 持久化结果
-logging.info("Generating JSON file begins")
+logging.info("Serialization Begins")
 fp = open(HashData_Filename,"w")   #
-t1_json =time()
-json.dump(hashData, fp)            #
-t2_json =time()
+t1_serial =time()
+cPickle.dump(hashData, fp)            #
+t2_serial =time()
 fp.close()
-logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")
+logging.info("Serialization Ends, taking "+ str(t2_serial-t1_serial) +" seconds")

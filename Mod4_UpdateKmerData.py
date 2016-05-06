@@ -100,19 +100,20 @@ def UpdateKmerData(reads, kval, stats):
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
 # python Mod4_UpdateKmerData.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json -rfrd C:\data\Mod3_RefinedReads_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
-import json
+
+import cPickle
 import uuid
 import logging
 # 定义辅助参数
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-refinedStatsFile=str(dictionaryArguments["-rfst"])  if "-rfst"  in dictionaryArguments else "refinestat.json"  #
-refinedReadsFile=str(dictionaryArguments["-rfrd"])  if "-rfrd"  in dictionaryArguments else "refineread.json"  #
+refinedStatsFile=str(dictionaryArguments["-rfst"])  if "-rfst"  in dictionaryArguments else "refinestat.pkl"  #
+refinedReadsFile=str(dictionaryArguments["-rfrd"])  if "-rfrd"  in dictionaryArguments else "refineread.pkl"  #
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-RefinedStats_Filename = "Mod4_RefinedStats_"+TASKNAME+"_"+uuidstr+".json"  #
+RefinedStats_Filename = "Mod4_RefinedStats_"+TASKNAME+"_"+uuidstr+".pkl"  #
 RefinedStats_Filename = os.path.join(RESULTDIR, RefinedStats_Filename)     #
 Log_Filename          = "Mod4_RefinedStats_"+TASKNAME+"_"+uuidstr+".log"   #
 Log_Filename          = os.path.join(LOGDIR, Log_Filename)
@@ -129,8 +130,8 @@ logging.info("Results in "+str(RefinedStats_Filename))   #
 # 导入数据
 logging.info("File Loading begins")
 t1_load     = time()
-refinedStats = json.load(open(refinedStatsFile, 'r'))    #
-refinedReads = json.load(open(refinedReadsFile, 'r'))    #
+refinedStats = cPickle.load(open(refinedStatsFile, 'r'))    #
+refinedReads = cPickle.load(open(refinedReadsFile, 'r'))    #
 t2_load     = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 
@@ -142,10 +143,10 @@ t2_updateKmer = time()
 logging.info("Update Kmer ends, taking "+ str(t2_updateKmer-t1_updateKmer) +" seconds")    #
 
 # 持久化结果
-logging.info("Generating JSON file begins")
+logging.info("Serialization Begins")
 fp = open(RefinedStats_Filename,"w")   #
-t1_json =time()
-json.dump(refinedStats, fp)            #
-t2_json =time()
+t1_serial =time()
+cPickle.dump(refinedStats, fp)            #
+t2_serial =time()
 fp.close()
-logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")
+logging.info("Serialization ends, taking "+ str(t2_serial-t1_serial) +" seconds")

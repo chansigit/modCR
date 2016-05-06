@@ -105,7 +105,7 @@ def GetKmerStats(reads, kval):
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
 # python Mod1_GetKmerStats.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test
-import json
+import cPickle
 import uuid
 import logging
 # 定义辅助参数
@@ -115,7 +115,7 @@ TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArgumen
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-KmerStats_Filename = "Mod1_KmerStats_"+TASKNAME+"_"+uuidstr+".json"
+KmerStats_Filename = "Mod1_KmerStats_"+TASKNAME+"_"+uuidstr+".pkl"
 KmerStats_Filename = os.path.join(RESULTDIR, KmerStats_Filename)
 Log_Filename       = "Mod1_KmerStats_"+TASKNAME+"_"+uuidstr+".log"
 Log_Filename       = os.path.join(LOGDIR, Log_Filename)
@@ -145,10 +145,11 @@ t2_kmerStat = time()
 logging.info("Getting Kmer Statistics ends, taking "+ str(t2_kmerStat-t1_kmerStat) +" seconds")
 
 # 持久化结果
-logging.info("Generating JSON file begins")
+logging.info("Serialization begins")
 fp = open(KmerStats_Filename,"w")
-t1_json =time()
-json.dump(stats, fp)
-t2_json =time()
+t1_serial =time()
+#json.dump(stats, fp)
+cPickle.dump(stats,fp)
+t2_serial =time()
 fp.close()
-logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")
+logging.info("Serialization ends, taking "+ str(t2_serial-t1_serial) +" seconds")

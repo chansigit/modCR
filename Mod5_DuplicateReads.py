@@ -88,18 +88,19 @@ def DuplicateReads(reads):
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
 # python Mod5_DuplicateReads.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfrd C:\data\Mod3_RefinedReads_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
-import json
+
+import cPickle
 import uuid
 import logging
 # 定义辅助参数
 RESULTDIR= str(dictionaryArguments["-retdir"]) if "-retdir" in dictionaryArguments else "~/"
 LOGDIR   = str(dictionaryArguments["-log"])    if "-log"    in dictionaryArguments else RESULTDIR
 TASKNAME = str(dictionaryArguments["-tname"])  if "-tname"  in dictionaryArguments else "default"
-refineReadsFile=str(dictionaryArguments["-rfrd"])  if "-rfrd"  in dictionaryArguments else "refineread.json"  #
+refineReadsFile=str(dictionaryArguments["-rfrd"])  if "-rfrd"  in dictionaryArguments else "refineread.pkl"  #
 
 # 生成日志文件名和输出文件名
 uuidstr=str(uuid.uuid1())
-RefinedReads_Filename = "Mod5_RefinedReads_"+TASKNAME+"_"+uuidstr+".json"  #
+RefinedReads_Filename = "Mod5_RefinedReads_"+TASKNAME+"_"+uuidstr+".pkl"  #
 RefinedReads_Filename = os.path.join(RESULTDIR, RefinedReads_Filename)     #
 Log_Filename          = "Mod5_RefinedReads_"+TASKNAME+"_"+uuidstr+".log"   #
 Log_Filename          = os.path.join(LOGDIR, Log_Filename)
@@ -116,7 +117,7 @@ logging.info("Results in "+str(RefinedReads_Filename))   #
 # 导入数据
 logging.info("File Loading begins")
 t1_load     = time()
-refinedReads = json.load(open(refineReadsFile, 'r'))    #
+refinedReads = cPickle.load(open(refineReadsFile, 'r'))    #
 t2_load     = time()
 logging.info("File Loading Finished, taking " + str(t2_load-t1_load) + " seconds")
 
@@ -129,10 +130,10 @@ t2_refineReads = time()    #
 logging.info("Refining Reads ends, taking "+ str(t2_refineReads-t1_refineReads) +" seconds")    #
 
 # 持久化结果
-logging.info("Generating JSON file begins")
+logging.info("Serialization Begins")
 fp = open(RefinedReads_Filename,"w")   #
-t1_json =time()
-json.dump(refinedReads, fp)            #
-t2_json =time()
+t1_serial =time()
+cPickle.dump(refinedReads, fp)            #
+t2_serial =time()
 fp.close()
-logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")
+logging.info("Serialization ends, taking "+ str(t2_serial-t1_serial) +" seconds")
