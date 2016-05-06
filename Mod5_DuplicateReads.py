@@ -87,7 +87,7 @@ def DuplicateReads(reads):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod5_DuplicateReads.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfrd C:\data\Mod3_RefinedReads_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
+# python Mod5_DuplicateReads.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname MAY6 -rfrd C:\data\Mod3_RefinedReads_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl
 
 import cPickle
 import uuid

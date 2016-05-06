@@ -110,7 +110,7 @@ def GetReadsLength(directory, fileName):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod3_GetRelevantReads.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json
+# python Mod3_GetRelevantReads.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname MAY6 -rfst C:\data\Mod2_RefinedStats_MAY6_62781d21-134c-11e6-9a66-ec55f98094e4.pkl
 
 import cPickle
 import uuid

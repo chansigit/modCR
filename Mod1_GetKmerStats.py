@@ -104,7 +104,7 @@ def GetKmerStats(reads, kval):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod1_GetKmerStats.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test
+# python Mod1_GetKmerStats.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname MAY6
 import cPickle
 import uuid
 import logging

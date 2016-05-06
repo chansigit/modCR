@@ -108,7 +108,7 @@ def ComputeHashValues(reads, minOverlap, mod):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod6_ComputeHash.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfrd C:\data\Mod5_RefinedReads_may1test_2d0bd6cf-11cc-11e6-b12b-ec55f98094e4.json -ovlp C:\data\Mod3_minOverlap_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
+# python Mod6_ComputeHash.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfrd C:\data\Mod5_RefinedReads_MAY6_30ab96e1-134d-11e6-8198-ec55f98094e4.pkl -ovlp C:\data\Mod3_minOverlap_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl
 
 import cPickle
 import uuid

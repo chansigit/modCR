@@ -99,7 +99,7 @@ def UpdateKmerData(reads, kval, stats):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod4_UpdateKmerData.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json -rfrd C:\data\Mod3_RefinedReads_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
+# python Mod4_UpdateKmerData.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname MAY6 -rfst C:\data\Mod2_RefinedStats_MAY6_62781d21-134c-11e6-9a66-ec55f98094e4.pkl -rfrd C:\data\Mod3_RefinedReads_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl
 
 import cPickle
 import uuid

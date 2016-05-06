@@ -96,7 +96,7 @@ def GetRefineStats(stats, threshold):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod2_GetRefinedStats.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -stat C:\data\Mod1_KmerStats_may1test_4fa683b0-11be-11e6-8116-ec55f98094e4.json
+# python Mod2_GetRefinedStats.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname MAY6 -stat C:\data\Mod1_KmerStats_MAY6_0ff05630-134c-11e6-afb8-ec55f98094e4.pkl
 import cPickle
 import uuid
 import logging
