@@ -1,0 +1,21 @@
+
+========================
+crispr Finder
+seq.fasta 20 40
+Number of frequent kmers is 53382 26691
+Number of relevant reads is 14172
+STATS
+Reads: 0.0
+Stats: 1.34300017357
+Refined Stats: 0.148000001907
+Refined Reads: 0.12700009346
+Update Kmers: 1.08899998665
+Duplication: 0.197999954224
+Hash Computation: 9.91000008583
+Match Kmers: 0.220999956131
+Good Analysis : 0
+Bad Analysis: 26.2509953976
+Clustering: 0.0
+Canonization: 0
+Alignment: 0
+Total 39.8040001392

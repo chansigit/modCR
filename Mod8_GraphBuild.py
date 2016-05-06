@@ -74,9 +74,13 @@ RC_DICT = {'A':'T', 'G':'C', 'C':'G', 'T':'A', 'N':'N', '{':'}', '}':'{', ' ':' 
 # **********************************************************************************************************************
 # *****************************************   Function Definition Section   ********************************************
 # **********************************************************************************************************************
+# Reverse complement a sequence
+def RC(seq):
+    return ''.join([RC_DICT[base] for base in seq[::-1]])
+
 # Get a list of overlapping reads and overlaps sizes for a given read
 def GetOverlapDataForRead(readindex, read, data, minOverlap):
-    overlaps = dict();
+    overlaps = dict()
     hashValues = CalcHashValues(readindex, read, minOverlap, SUFFIX, None, MOD)
     for index in range(len(hashValues)):
         overlapSize = index + minOverlap
@@ -315,19 +319,300 @@ def AnalyzeKmer(kmer, readIndices, reads, overlapsData, cacheOverlapsData, minOv
     spacers = []
     return spacers
 
+# Cluster kmers according to intersection of the sets of containing reads
+def ClusterKmers(kmersToReads):
+    clusters = dict()
+    # Initial clusters - one for every kmer
+    identifier = 0
+    for ((kmer, rckmer), (kmerReads, rcKmerReads)) in kmersToReads.items():
+        kmerSet = set()
+        kmerSet.add(kmer)
+        kmerSet.add(rckmer)
+        clusters[identifier] = [kmerSet, set(kmerReads).union(set(rcKmerReads))]
+        identifier += 1
+    merge = True
+    # Keep merging until no two clusters can be merged
+    while (merge):
+        kmers = list(clusters.keys())
+        merge = False
+        firstClusterIdentifier = None
+        secondClusterIdentifier = None
+        for firstClusterIndex in range(len(kmers)):
+            firstClusterIdentifier = kmers[firstClusterIndex]
+            for secondClusterIndex in range(firstClusterIndex + 1, len(kmers)):
+                secondClusterIdentifier = kmers[secondClusterIndex]
+                if (len(clusters[firstClusterIdentifier][1].intersection(clusters[secondClusterIdentifier][1])) > MINIMUM_READS_CLUSTER_MERGE):
+                    merge = True
+                    break
+            if (merge):
+                break
+        if (merge):
+            clusters[firstClusterIdentifier][0] = clusters[firstClusterIdentifier][0].union(clusters[secondClusterIdentifier][0])
+            clusters[firstClusterIdentifier][1] = clusters[firstClusterIdentifier][1].union(clusters[secondClusterIdentifier][1])
+            del clusters[secondClusterIdentifier]
+    return clusters
+
+# Get the different types of orientation of a given set of reads
+def GetDictStats(readOrientation, reads, readIndices, kmer):
+    result = []
+    for read in readIndices:
+        state = readOrientation[reads[read]]
+        if state != UNDEF and state not in result:
+            result.append(state)
+            if DEBUG and (len(result) > 1):
+                print ("AMBIGUITY", reads[read], kmer)
+    return result
+
+# Reverse a given strand orientation
+def ReverseOrientation(orientation):
+    if (orientation == REGULAR):
+        return REVCOMP
+    else:
+        return REGULAR
+
+# Orient a set of kmers and containing reads
+def ReadKmerCanonization(reads, kmers, kmerToReads, kval):
+    readOrientation = dict([(read, UNDEF) for read in reads])
+    kmerOrientation = dict([(kmer, UNDEF) for kmer in kmerToReads])
+    futureKmerOrientations = dict()
+    bads = list()
+    readlen = len(reads[0])
+    carryon = True
+    # Keep on orienting kmers and reads as long as there was an orientation in the prevoius round
+    while (carryon):
+        carryon = False
+        for kmer in kmers:
+            rc = RC(kmer)
+            # Analyze kmers that were not already analyzed
+            if (kmerOrientation[kmer] == UNDEF and kmerOrientation[rc] == UNDEF):
+                # Get list of reads (for kmer and its reverse comlement)
+                listOfReads = kmerToReads[kmer]
+                listOfRCReads = kmerToReads[rc]
+                # Verify that the no read contains the kmer and its reverse complement
+                commons = [read for read in listOfReads if read in listOfRCReads]
+                if DEBUG and len(commons) > 0:
+                    print ("BAD CANONIZATION: reads containing both kmer and RC:", kmer, rc)
+                    continue
+                # Get the orientations of reads containing the kmer (and its reverse complement)
+                states = GetDictStats(readOrientation, reads, listOfReads, kmer)
+                rcStates = GetDictStats(readOrientation, reads, listOfRCReads, rc)
+                # Verify that no contradiction occurs in previous orientations of reads containig the kmer (or its reverse comlement)
+                if (len(states) > 1 or len(rcStates) > 1):
+                    if DEBUG:
+                        print("BAD CANONIZATION: contradiction in orientation process")
+                        print (kmer, rc)
+                    bads.append(kmer)
+                    bads.append(rc)
+                    continue
+                # Verify that previous orientations of kmer and its reverse complement are not the same
+                elif len(states) == 1 and len(rcStates) == 1 and states[0] == rcStates[0]:
+                    if DEBUG:
+                        print("BAD CANONIZATION: kmer and its reverse complement has the same orientation")
+                        print (kmer, rc)
+                    bads.append(kmer)
+                    bads.append(rc)
+                    continue
+                # Orient kmer and reverse complement if possible
+                if (len(states) == 0 and len(rcStates) == 0):
+                    # Check if kmer can be oriented according to previously oriented kmers (actually, should not happen...)
+                    if (kmer in futureKmerOrientations and rc in futureKmerOrientations):
+                        # Verify no contradiction occurs in previous orientation of the kmer and its reverse complement
+                        if (DEBUG and futureKmerOrientations[kmer] == futureKmerOrientations[rc]):
+                            print("BAD CANONIZATION: contradiction in future kmer orientation")
+                            continue
+                        # Use previous orientation if possible
+                        else:
+                            states.append(futureKmerOrientations[kmer])
+                            rcStates.append(futureKmerOrientations[rc])
+                    # Determine orientation by current kmer (only for first root)
+                    elif (len(futureKmerOrientations) == 0):
+                        states.append(REGULAR)
+                        rcStates.append(REVCOMP)
+                    # Orientation can not be determined by previously oriented kmers AND it is not the root oriented kmer - wait for others
+                    else:
+                        continue
+                carryon = True
+                # Make sure both kmer and its reverse complement are oriented
+                if (len(states) == 0):
+                    states.append(ReverseOrientation(rcStates[0]))
+                if (len(rcStates) == 0):
+                    rcStates.append(ReverseOrientation(states[0]))
+                # Orient kmer (mark kmer orientation, relevant reads orientation and  determine orientation of other kmers in those reads)
+                kmerOrientation[kmer] = states[0]
+                for readIndex in listOfReads:
+                    read = reads[readIndex]
+                    readOrientation[read] = states[0]
+                    for otherKmer in kmers:
+                        if (readIndex in kmerToReads[otherKmer]):
+                            if (otherKmer not in futureKmerOrientations):
+                                futureKmerOrientations[otherKmer] = states[0]
+                                futureKmerOrientations[RC(otherKmer)] = rcStates[0]
+                # Orient reverse comlement kmer (in the same process)
+                kmerOrientation[rc] = rcStates[0]
+                for readIndex in listOfRCReads:
+                    read = reads[readIndex]
+                    readOrientation[read] = rcStates[0]
+                    for otherKmer in kmers:
+                        if (readIndex in kmerToReads[otherKmer]):
+                            if (otherKmer not in futureKmerOrientations):
+                                futureKmerOrientations[otherKmer] = rcStates[0]
+                                futureKmerOrientations[RC(otherKmer)] = states[0]
+    # Alert if orientation problems occured
+    if (DEBUG and len(bads) > 0):
+        print (len(kmerToReads))
+        print (len(bads), bads)
+        for kmer in kmers:
+            print (kmer, kmerOrientation[kmer])
+    return (bads, readOrientation, kmerOrientation)
+
+# Derive consensus sequence(s) for a repeat using a fast multiple alignment of all relevant reads (repeats)
+def RepeatByMultipleAlignment(repeats, kmerShiftIndex, kmers, data, overlapsCache, minOverlap, readLen):
+    if (len(repeats) == 0):
+        return repeats
+    # Multiple alignment of all repeats
+    aligner = SimpleMultiple2([repData[0] for repData in repeats],KVAL, readLen, kmerShiftIndex)
+    aligner.align()
+    matrix = aligner.alignment
+    if (DEBUG):
+        for algn in matrix:
+            print (algn)
+    alignmentLength = aligner.maxLength
+    repeatNumber = len(matrix)
+    # Derive the multiple alignment statistics
+    stats = dict()
+    for baseIndex in range(alignmentLength):
+        stats[baseIndex] = dict()
+        for repIndex in range(repeatNumber):
+            currBase = matrix[repIndex][baseIndex]
+            stats[baseIndex][currBase] = stats[baseIndex].get(currBase, 0) + repeats[repIndex][1]
+    if (DEBUG):
+        print (stats)
+    # Derive consensus sequences(s) for the repeat from multiple alignment statistics
+    repeat = []
+    dominants = []
+    total = repeatNumber
+    inRepeatMode = False
+    for baseIndex in range(alignmentLength):
+        # Remove spaces
+        currTotal = total - stats[baseIndex].get(SPACE, 0)
+        if (SPACE in stats[baseIndex]):
+            stats[baseIndex].pop(SPACE)
+        # Check for dominant bases in that position
+        bases = []
+        # A case of one dominant repeat base
+        dominant = False
+        multipleBase = False
+        if (DEBUG):
+            print ("***", baseIndex, total, currTotal, stats[baseIndex])
+        for base in stats[baseIndex]:
+            if (stats[baseIndex][base] > currTotal * CONSENSUS_FRACTION_DOMINANT):
+                bases = [base]
+                dominant = True
+                if (DEBUG):
+                    print ("Dominant", stats[baseIndex], base)
+                break
+        dominants.append(dominant)
+        # A case of several (two) repeat base options
+        if (not dominant):
+            bases_sorted = sorted(stats[baseIndex], key=stats[baseIndex].get, reverse = True)
+            if (stats[baseIndex][bases_sorted[0]] > currTotal * CONSENSUS_FRACTION_MULTIPLE_FIRST):
+                if (stats[baseIndex][bases_sorted[1]] > currTotal * CONSENSUS_FRACTION_MULTIPLE_SECOND):
+                        if ((len(stats[baseIndex])) < 3 or (stats[baseIndex][bases_sorted[2]] < currTotal * CONSEN_FRAC_MULT_MAX_THIRD)):
+                            bases = [bases_sorted[0], bases_sorted[1]]
+                            multipleBase = True
+                            if (DEBUG):
+                                print ("Multiple", stats[baseIndex], bases)
+        if (DEBUG and not dominant and not multipleBase):
+            print ("None", stats[baseIndex])
+        # If there are dominant base(s) - add them
+        if (len(bases) > 0):
+            currRepeatBases = []
+            for base in bases:
+                currRepeatBases.append(base)
+            repeat.append(currRepeatBases)
+        else:
+            repeat.append([SPACE])
+    # Find longest sub sequence in the derived repeat
+    startDR = currStart = endDR = currEnd = -1
+    longestSequenceSoFar = currSequenceLength = 0
+    isInSeq = False
+    for index in range(len(repeat)):
+        if (SPACE not in repeat[index]):
+            if (not isInSeq):
+                currStart = currEnd = index
+                isInSeq = True
+            else:
+                currEnd = index
+        else:
+            if (isInSeq):
+                isInSeq = False
+                currSequenceLength = currEnd - currStart + 1
+                if (currSequenceLength > longestSequenceSoFar):
+                    longestSequenceSoFar = currSequenceLength
+                    startDR = currStart
+                    endDR = currEnd
+    repeat = repeat[startDR : endDR + 1]
+    # Convert repeat to string
+    if (len(repeat) < MINIMUM_REPEAT_LENGTH or len(repeat) > MAXIMUM_REPEAT_LENGTH):
+        return None
+    repeatString = ""
+    numberNonDominants = 0
+    for repBase in repeat:
+        if (len(repBase) == 1):
+            repeatString += repBase[0]
+        else:
+            repeatString += "{"
+            for option in repBase:
+                repeatString += option + " "
+            repeatString += "}"
+            numberNonDominants += 1
+    if (numberNonDominants > 9 or numberNonDominants > len(repeat) / 3):
+        return None
+    return repeatString
+
+# Determine a relative shift for every kmer according to a given root read
+def ConstructShiftIndex(root, kmers):
+    kmerShiftIndex = dict()
+    for kmer in kmers:
+        # kmer appears as it is in one of the initial DRs
+        result = root.find(kmer)
+        if (result > -1):
+            kmerShiftIndex[kmer] = result
+            continue
+        # kmer appeas only from the second base (flanking first base)
+        result = root.find(kmer[1:])
+        if (result > 0):
+            kmerShiftIndex[kmer] = result - 1
+            continue
+        # kmer appeas only up to the last base (flanking last base)
+        result = root.find(kmer[:-1])
+        if (result > -1 and result <= len(root) - len(kmer)):
+            kmerShiftIndex[kmer] = result
+            continue
+        # kmer does not appears exactly in one of the DRs
+        aligner = LocalAligner(kmer, root)
+        alignment = aligner.align()
+        if (alignment.score > KVAL - 4):
+            kmerShiftIndex[kmer] = alignment.shiftFirst
+        else:
+            # kmerShiftIndex[kmer] = 100
+            pass
+    return kmerShiftIndex
+
 
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
 # python Mod8_GraphBuild.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test
-# -rfst C:\data\Mod4_RefinedStats_may05test_bcc77d80-11fc-11e6-bac8-ec55f98094e4.json
-# -rfrd C:\data\Mod5_RefinedReads_may05test_e91ab04f-11fc-11e6-870d-ec55f98094e4.json
-# -hash C:\data\Mod6_HashData_may05test_bd9fa840-12b0-11e6-b637-ec55f98094e4.json
-# -pair C:\data\Mod7_MatchedPair_may05test_55e83c21-11fd-11e6-bbf5-ec55f98094e4.json
-# -ovlp C:\data\Mod3_minOverlap_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json
-# -rlrd C:\data\Mod3_relevantReadsNumber_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json
-# -rlen C:\data\Mod3_readLen_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json
-# python Mod8_GraphBuild.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod4_RefinedStats_may05test_bcc77d80-11fc-11e6-bac8-ec55f98094e4.json  -rfrd C:\data\Mod5_RefinedReads_may05test_e91ab04f-11fc-11e6-870d-ec55f98094e4.json -hash C:\data\Mod6_HashData_may05test_bd9fa840-12b0-11e6-b637-ec55f98094e4.json -pair C:\data\Mod7_MatchedPair_may05test_55e83c21-11fd-11e6-bbf5-ec55f98094e4.json -ovlp C:\data\Mod3_minOverlap_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json -rlrd C:\data\Mod3_relevantReadsNumber_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json -rlen C:\data\Mod3_readLen_may05test_594629a1-11fc-11e6-8b62-ec55f98094e4.json
+# -rfst C:\data\Mod4_RefinedStats_MAY6_ffcb13c0-134c-11e6-9016-ec55f98094e4.pkl
+# -rfrd C:\data\Mod5_RefinedReads_MAY6_30ab96e1-134d-11e6-8198-ec55f98094e4.pkl
+# -hash C:\data\Mod6_HashData_may1test_75701cb0-134d-11e6-9092-ec55f98094e4.pkl
+# -pair C:\data\Mod7_MatchedPair_may1test_a2f87421-134d-11e6-b66b-ec55f98094e4.pkl
+# -ovlp C:\data\Mod3_minOverlap_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl
+# -rlrd C:\data\Mod3_relevantReadsNumber_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl
+# -rlen C:\data\Mod3_readLen_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl
+
+# c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod4_RefinedStats_MAY6_ffcb13c0-134c-11e6-9016-ec55f98094e4.pkl  -rfrd C:\data\Mod5_RefinedReads_MAY6_30ab96e1-134d-11e6-8198-ec55f98094e4.pkl  -hash C:\data\Mod6_HashData_may1test_75701cb0-134d-11e6-9092-ec55f98094e4.pkl -pair C:\data\Mod7_MatchedPair_may1test_a2f87421-134d-11e6-b66b-ec55f98094e4.pkl  -ovlp C:\data\Mod3_minOverlap_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl  -rlrd C:\data\Mod3_relevantReadsNumber_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl  -rlen C:\data\Mod3_readLen_MAY6_c47e1b9e-134c-11e6-a1b1-ec55f98094e4.pkl
 
 import cPickle
 import uuid
@@ -382,6 +667,7 @@ kindex        = 0
 gapt          = 0
 bapt          = 0
 # -------------------------------------------
+print "Analyzing kmers..."
 startTimeKmerAnalysis = time()
 for (kmer, rckmer) in pairs.items():
     readIndices = refinedStats[kmer]
@@ -396,9 +682,9 @@ for (kmer, rckmer) in pairs.items():
         allIndices.append(relevantReadsNumber + rcIndex)
 
     apt1 = time()
-    print "kmer=", kmer
+
     spacers = AnalyzeKmer(kmer, allIndices, refinedReads, data, overlapsCache, minOverlap)
-    print spacers
+
     apt2 = time()
     kindex += 1
 
@@ -408,8 +694,72 @@ for (kmer, rckmer) in pairs.items():
     else:
         bapt += apt2 - apt1
 endTimeKmerAnalysis = time()
-logging.info("Analyzing kmer takes ",endTimeKmerAnalysis - startTimeKmerAnalysis, "seconds")
+#logging.info("Analyzing kmer takes ",str(endTimeKmerAnalysis - startTimeKmerAnalysis), " seconds")
 # -------------------------------------------
+print "Clustring kmers..."
+# Patition kmers into clusters
+crisprKmersData = dict([((kmerData[0], kmerData[1]), (refinedStats[kmerData[0]], refinedStats[kmerData[1]])) for kmerData in crisprKmers])
+# Cluster kmers according to containing reads
+clusters = ClusterKmers(crisprKmersData)
+
+# -------------------------------------------
+canon = 0;
+distil = 0
+for (identifier, (kmers, allReads)) in clusters.items():
+    # Find orientation of all kmers and reads in a cluster
+    canon1 = time()
+    (bads, readOrientations, kmerOrientations) = ReadKmerCanonization(refinedReads, kmers, refinedStats, KVAL)
+    canon2 = time()
+    canon += canon2 - canon1
+    if DEBUG and len(bads) > 0:
+        print ("There are orientation problems.")
+    # Orient the kmers according to the orientation algorithm
+    orientedKmers = []
+    for kmer in kmers:
+        if (kmerOrientations[kmer] == REVCOMP):
+            orientedKmers.append(RC(kmer))
+        else:
+            orientedKmers.append(kmer)
+    # Orient the reads according to the orientation algorithm
+    clusterReads = []
+    for readIndex in allReads:
+        if (readOrientations[refinedReads[readIndex]] == REVCOMP):
+            clusterReads.append(RC(refinedReads[readIndex]))
+        else:
+            clusterReads.append(refinedReads[readIndex])
+    # Construct list of (read, multiplicity) where multiplicity always equals one (no longer used)
+    clusterReads = [[read,1] for read in clusterReads]
+    # Choose the seed read to align accordingly (the read that contains the most kers)
+    seedIndex = 0
+    seedScore = -1
+    for readIndex in range(len(clusterReads)):
+        possibleSeed = clusterReads[readIndex][0]
+        score = len([kmer for kmer in orientedKmers if kmer in possibleSeed])
+        if (score > seedScore):
+            seedScore = score
+            seedIndex = readIndex
+    # Switch seed read with first read
+    temp = clusterReads[0]
+    clusterReads[0] = clusterReads[seedIndex]
+    clusterReads[seedIndex] = temp
+    if (DEBUG):
+        print ("SEED: ", clusterReads[seedIndex])
+
+    # Construct shift index: for every kmer determine its relative location in the initial DR (seed read)
+    kmerShiftIndex = ConstructShiftIndex(clusterReads[0][0], orientedKmers)
+    if (DEBUG):
+        print (clusterReads[0][0])
+        for k in kmerShiftIndex:
+            print (k, kmerShiftIndex[k])
+    # Align all reads by kmer shift from inital repeats
+    # in every read we search for the first kmer that also appears in the seed and align according to it
+    distil1 = time()
+    finalRepeat = RepeatByMultipleAlignment(clusterReads, kmerShiftIndex, orientedKmers, data, overlapsCache, minOverlap, readLen)
+    distil2 = time()
+    distil = distil2 - distil1
+    if (finalRepeat != None):
+        print "FINAL REPEAT:\n", finalRepeat, RC(finalRepeat)
+        print (finalRepeat + " " + RC(finalRepeat) + "\n")
 
 # -------------------------------------------
 t2_GraphBuild = time()
@@ -418,12 +768,12 @@ logging.info("Graph Building ends, taking "+ str(t2_GraphBuild-t1_GraphBuild) +"
 
 
 # 持久化结果
-logging.info("Generating JSON file begins")
+logging.info("Serialization Begins")
 fp = open(Ret_Filename,"w")
-t1_json =time()
+t1_serial =time()
 
 #json.dump(xxx, fp)
 
-t2_json =time()
+t2_serial =time()
 fp.close()
-logging.info("Generating JSON file ends, taking "+ str(t2_json-t1_json) +" seconds")
+logging.info("Serialization Ends, taking "+ str(t2_serial-t1_serial) +" seconds")
