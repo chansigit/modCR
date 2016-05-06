@@ -110,7 +110,7 @@ def GetReadsLength(directory, fileName):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod3_GetRelevantReads.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json
+# python Mod3_GetRelevantReads.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json
 import json
 import uuid
 import logging

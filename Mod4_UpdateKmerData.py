@@ -99,7 +99,7 @@ def UpdateKmerData(reads, kval, stats):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod4_UpdateKmerData.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json -rfrd C:\data\Mod3_RefinedReads_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
+# python Mod4_UpdateKmerData.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfst C:\data\Mod2_RefinedStats_may1test_a4621a8f-11be-11e6-be68-ec55f98094e4.json -rfrd C:\data\Mod3_RefinedReads_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
 import json
 import uuid
 import logging

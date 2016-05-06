@@ -92,7 +92,7 @@ def MatchKmers(stats):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod7_MatchKmers.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -stat C:\data\Mod4_RefinedStats_may1test_900dbb21-11c4-11e6-8c9c-ec55f98094e4.json
+# python Mod7_MatchKmers.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -stat C:\data\Mod4_RefinedStats_may1test_900dbb21-11c4-11e6-8c9c-ec55f98094e4.json
 import json
 import uuid
 import logging

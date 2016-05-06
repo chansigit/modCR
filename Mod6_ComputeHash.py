@@ -108,7 +108,7 @@ def ComputeHashValues(reads, minOverlap, mod):
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod6_ComputeHash.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfrd C:\data\Mod5_RefinedReads_may1test_2d0bd6cf-11cc-11e6-b12b-ec55f98094e4.json -ovlp C:\data\Mod3_minOverlap_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
+# python Mod6_ComputeHash.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test -rfrd C:\data\Mod5_RefinedReads_may1test_2d0bd6cf-11cc-11e6-b12b-ec55f98094e4.json -ovlp C:\data\Mod3_minOverlap_may1test_54a09d91-11d4-11e6-802c-ec55f98094e4.json
 import json
 import uuid
 import logging

@@ -319,7 +319,7 @@ def AnalyzeKmer(kmer, readIndices, reads, overlapsData, cacheOverlapsData, minOv
 # **********************************************************************************************************************
 # *********************************************   Computation Section   ************************************************
 # **********************************************************************************************************************
-# python Mod8_GraphBuild.py c:\data\chromosome.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test
+# python Mod8_GraphBuild.py c:\data\seq.fasta -k 20 -t 40 -retdir c:\data -log c:\data\ -tname may1test
 # -rfst C:\data\Mod4_RefinedStats_may05test_bcc77d80-11fc-11e6-bac8-ec55f98094e4.json
 # -rfrd C:\data\Mod5_RefinedReads_may05test_e91ab04f-11fc-11e6-870d-ec55f98094e4.json
 # -hash C:\data\Mod6_HashData_may05test_bd9fa840-12b0-11e6-b637-ec55f98094e4.json
